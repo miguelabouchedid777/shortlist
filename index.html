@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EEF0EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1412" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Shortlist">
+<meta name="robots" content="noindex, nofollow">
+<title>Shortlist</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2315803D'/%3E%3Crect x='14' y='18' width='36' height='28' rx='5' fill='%23fff' transform='rotate(-8 32 32)'/%3E%3Cpath d='M24 33l6 6 11-13' stroke='%2315803D' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --ground: #EEF0EA; --card: #FFFFFF; --card-2: #F7F8F4; --ink: #151C18; --muted: #5C6861; --line: #D8DDD4;
+    --accent: #3346C9; --accent-ink: #FFFFFF; --save: #15803D; --save-tint: #E3F3E8; --pass: #B4233C; --pass-tint: #F8E4E7;
+    --tier-a: #DDF0E2; --tier-a-ink: #11602F; --tier-b: #FBEFD2; --tier-b-ink: #7A5410; --tier-c: #ECEEE9; --tier-c-ink: #4B554F;
+    --new: #E3E7FB; --new-ink: #2B3AA8; --warn: #9A5B00; --shadow: 0 1px 2px rgba(21,28,24,.06), 0 8px 24px rgba(21,28,24,.08);
+    --display: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+    --body: 'Figtree', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #0F1412; --card: #18201C; --card-2: #1D2622; --ink: #E8EDE9; --muted: #9AA69F; --line: #2B352F;
+      --accent: #8E9CFF; --accent-ink: #0F1412; --save: #34C27A; --save-tint: #173325; --pass: #F0607A; --pass-tint: #3A1C23;
+      --tier-a: #173325; --tier-a-ink: #7FDCA6; --tier-b: #3A2E14; --tier-b-ink: #F2C66D; --tier-c: #242C28; --tier-c-ink: #B5C0B9;
+      --new: #1F2547; --new-ink: #B7C0FF; --warn: #F2B35B; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--ground); color: var(--ink); font: 15px/1.45 var(--body);
+    display: flex; flex-direction: column; overflow: hidden;
+    padding: env(safe-area-inset-top, 0px) 0 0; -webkit-font-smoothing: antialiased;
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+
+  /* header */
+  .top { display: flex; align-items: center; gap: 10px; padding: 10px 16px 6px; }
+  .brand { font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: -.01em; margin-right: auto; }
+  .pill { font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .pill.ok { color: var(--save); } .pill.err { color: var(--pass); } .pill.busy { color: var(--accent); }
+  .icon-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); display: grid; place-items: center; }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .tabs { display: flex; gap: 4px; padding: 4px 16px 10px; }
+  .tab { flex: 1; border: 0; background: transparent; padding: 8px 0; border-radius: 10px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tab[aria-selected="true"] { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+
+  main { flex: 1; min-height: 0; position: relative; }
+  .view { position: absolute; inset: 0; }
+  .scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+
+  /* card stack */
+  .stage { position: absolute; inset: 0 16px 0; }
+  .card {
+    position: absolute; inset: 0; background: var(--card); border-radius: 22px; box-shadow: var(--shadow); border: 1px solid var(--line);
+    display: flex; flex-direction: column; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none;
+    transition: transform .28s cubic-bezier(.2,.8,.2,1), opacity .28s;
+  }
+  .card.behind { transform: scale(.955) translateY(10px); opacity: .7; pointer-events: none; }
+  .card-body { flex: 1; overflow-y: auto; padding: 20px 20px 16px; display: flex; flex-direction: column; gap: 14px; overscroll-behavior: contain; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 7px; background: var(--tier-c); color: var(--tier-c-ink); letter-spacing: .01em; }
+  .chip.a { background: var(--tier-a); color: var(--tier-a-ink); } .chip.b { background: var(--tier-b); color: var(--tier-b-ink); }
+  .chip.new { background: var(--new); color: var(--new-ink); } .chip.closed { background: var(--pass-tint); color: var(--pass); }
+  .company { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; }
+  .title { font-family: var(--display); font-weight: 700; font-size: 25px; line-height: 1.15; letter-spacing: -.015em; margin: 2px 0 0; text-wrap: balance; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 14px; }
+  .facts dt { color: var(--muted); font-weight: 500; }
+  .facts dd { margin: 0; font-weight: 500; }
+  .pay { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 17px; }
+  .pay.none { font-weight: 500; font-size: 14px; color: var(--muted); }
+  .block h3 { margin: 0 0 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  .block p { margin: 0; max-width: 62ch; }
+  .block.watch p { color: var(--ink); }
+  .block.watch h3 { color: var(--warn); }
+  .clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+  .card.expanded .clamp { -webkit-line-clamp: unset; display: block; }
+  .card-foot { display: flex; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--line); background: var(--card-2); }
+  .ghost { flex: 1; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 10px 12px; font-weight: 600; text-align: center; text-decoration: none; color: var(--ink); }
+  .ghost.link { color: var(--accent); }
+  .meta { font-size: 12px; color: var(--muted); }
+  .stamp { position: absolute; top: 22px; font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: .06em; padding: 4px 12px; border: 3px solid; border-radius: 10px; opacity: 0; pointer-events: none; }
+  .stamp.save { right: 18px; color: var(--save); transform: rotate(8deg); background: var(--save-tint); }
+  .stamp.pass { left: 18px; color: var(--pass); transform: rotate(-8deg); background: var(--pass-tint); }
+
+  .actions { display: flex; justify-content: center; align-items: center; gap: 18px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .act { border: 0; border-radius: 999px; display: grid; place-items: center; box-shadow: var(--shadow); }
+  .act svg { width: 28px; height: 28px; }
+  .act.pass { width: 64px; height: 64px; background: var(--card); color: var(--pass); border: 1px solid var(--line); }
+  .act.save { width: 64px; height: 64px; background: var(--save); color: #fff; }
+  .act.undo { width: 46px; height: 46px; background: var(--card); color: var(--muted); border: 1px solid var(--line); }
+  .act.undo svg { width: 20px; height: 20px; }
+  .act:disabled { opacity: .4; cursor: default; }
+  .act-label { font-size: 11px; font-weight: 600; color: var(--muted); text-align: center; margin-top: 4px; }
+  .act-wrap { display: flex; flex-direction: column; align-items: center; }
+
+  .empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; }
+  .empty h2 { font-family: var(--display); font-size: 22px; margin: 0 0 6px; }
+  .empty p { color: var(--muted); margin: 0 0 16px; max-width: 34ch; }
+  .btn { border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 700; padding: 11px 18px; border-radius: 12px; }
+  .btn.secondary { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+
+  /* lists */
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .row { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .row-head { display: flex; gap: 10px; align-items: flex-start; }
+  .row-head > div { flex: 1; min-width: 0; }
+  .row .company { font-size: 11px; }
+  .row .t { font-weight: 700; font-size: 16px; line-height: 1.25; margin: 2px 0 0; }
+  .row .sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .row-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .row-actions select, .row textarea, .field input, .field select {
+    border: 1px solid var(--line); background: var(--card-2); border-radius: 10px; padding: 8px 10px;
+  }
+  .row textarea { width: 100%; min-height: 40px; resize: vertical; font-size: 14px; }
+  .small { font-size: 13px; padding: 7px 11px; flex: 0 0 auto; }
+  .list-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+  .note { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+
+  /* sheets */
+  .sheet-bg { position: fixed; inset: 0; background: rgba(10,14,12,.45); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+  .sheet { width: min(560px, 100%); max-height: 88%; overflow-y: auto; background: var(--card); border-radius: 22px 22px 0 0; padding: 18px 18px calc(22px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 16px; }
+  .sheet h2 { font-family: var(--display); margin: 0; font-size: 21px; }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; }
+  .group { display: flex; flex-direction: column; gap: 8px; }
+  .group-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  .toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tog { border: 1px solid var(--line); background: var(--card-2); border-radius: 999px; padding: 7px 12px; font-weight: 600; font-size: 14px; color: var(--muted); }
+  .tog[aria-pressed="true"] { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-weight: 600; font-size: 14px; }
+  .field input { width: 100%; }
+  .help { font-size: 13px; color: var(--muted); margin: 0; }
+  .help a { color: var(--accent); }
+  .err-text { color: var(--pass); font-size: 14px; margin: 0; }
+  ol.steps { margin: 0; padding-left: 20px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(104px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--card);
+    padding: 10px 12px 10px 16px; border-radius: 12px; display: flex; gap: 14px; align-items: center; font-weight: 600; font-size: 14px; z-index: 30; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
+  .toast button { background: transparent; border: 0; color: var(--card); text-decoration: underline; font-weight: 700; padding: 2px 4px; }
+
+  @media (min-width: 720px) {
+    .stage { left: 50%; right: auto; width: 520px; transform: translateX(-50%); }
+    .scroll { padding-inline: max(16px, calc(50% - 300px)); }
+  }
+  @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">Shortlist</div>
+    <span class="pill" id="sync" title="Where your picks are stored">Loading</span>
+    <button class="icon-btn" id="btn-filter" aria-label="Filters">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+    </button>
+    <button class="icon-btn" id="btn-settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-review" aria-selected="true">Review</button>
+    <button class="tab" role="tab" id="tab-saved" aria-selected="false">Saved</button>
+    <button class="tab" role="tab" id="tab-passed" aria-selected="false">Passed</button>
+  </nav>
+
+  <main>
+    <section class="view" id="view-review">
+      <div class="stage" id="stage"></div>
+      <div class="empty" id="review-empty" hidden>
+        <div>
+          <h2 id="empty-title">All caught up</h2>
+          <p id="empty-text">No roles left to review with these filters.</p>
+          <button class="btn secondary" id="empty-filters">Change filters</button>
+        </div>
+      </div>
+    </section>
+    <section class="view scroll" id="view-saved" hidden>
+      <div class="list-tools">
+        <button class="ghost small" id="copy-saved">Copy list</button>
+        <button class="ghost small" id="csv-saved">Download CSV</button>
+      </div>
+      <p class="note" id="saved-note"></p>
+      <div class="list" id="saved-list"></div>
+    </section>
+    <section class="view scroll" id="view-passed" hidden>
+      <p class="note">Roles you passed on. Restore one to send it back to Review.</p>
+      <div class="list" id="passed-list"></div>
+    </section>
+  </main>
+
+  <footer class="actions" id="actions">
+    <div class="act-wrap"><button class="act pass" id="btn-pass" aria-label="Pass (left arrow)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><span class="act-label">Pass</span></div>
+    <div class="act-wrap"><button class="act undo" id="btn-undo" aria-label="Undo (Z)" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button><span class="act-label">Undo</span></div>
+    <div class="act-wrap"><button class="act save" id="btn-save" aria-label="Save (right arrow)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><span class="act-label">Save</span></div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" hidden><span id="toast-text"></span><button id="toast-undo">Undo</button></div>
+
+  <!-- filters -->
+  <div class="sheet-bg" id="sheet-filters" hidden>
+    <div class="sheet" role="dialog" aria-labelledby="f-title">
+      <div class="sheet-head"><h2 id="f-title">Filters</h2><button class="ghost small" id="f-done">Done</button></div>
+      <div class="group"><span class="group-label">Level</span><div class="toggles" data-key="levels">
+        <button class="tog" data-v="mgr">Manager and Sr Manager</button><button class="tog" data-v="ic">Lead, Principal, IC</button>
+        <button class="tog" data-v="dir">Director and up</button><button class="tog" data-v="cos">Chief of Staff</button></div></div>
+      <div class="group"><span class="group-label">Fit tier</span><div class="toggles" data-key="tiers">
+        <button class="tog" data-v="A">A: apply first</button><button class="tog" data-v="B">B: strong</button>
+        <button class="tog" data-v="C">C: possible</button><button class="tog" data-v="new">New, not scored</button></div></div>
+      <div class="group"><span class="group-label">Work model</span><div class="toggles" data-key="work">
+        <button class="tog" data-v="Remote">Remote</button><button class="tog" data-v="Hybrid">Hybrid</button>
+        <button class="tog" data-v="Onsite">Onsite</button><button class="tog" data-v="Not specified">Not stated</button></div></div>
+      <div class="group"><span class="group-label">Pay</span>
+        <div class="field"><label for="f-minpay">Posted maximum at least</label>
+          <select id="f-minpay"><option value="0">Any</option><option value="150000">$150K</option><option value="180000">$180K</option><option value="200000">$200K</option><option value="250000">$250K</option></select></div>
+        <div class="toggles" data-key="nopay"><button class="tog" data-v="yes">Include roles with no posted pay</button></div>
+      </div>
+      <p class="help" id="f-count"></p>
+    </div>
+  </div>
+
+  <!-- settings / connect -->
+  <div class="sheet-bg" id="sheet-settings" hidden>
+    <div class="sheet" role="dialog" aria-labelledby="s-title">
+      <div class="sheet-head"><h2 id="s-title">Connect your job list</h2><button class="ghost small" id="s-close">Close</button></div>
+      <p class="help">Your roles and picks live in your private GitHub repo. This page reads and writes them with a token that stays in this browser only. Set it up once on each device.</p>
+      <ol class="steps">
+        <li>On GitHub, open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Settings, Developer settings, Fine-grained tokens</a>.</li>
+        <li>Repository access: only your job-search repo. Permissions: Contents, read and write.</li>
+        <li>Copy the token and paste it below.</li>
+      </ol>
+      <div class="field"><label for="s-repo">Repository (owner/name)</label><input id="s-repo" placeholder="yourname/job-search" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="field"><label for="s-branch">Branch</label><input id="s-branch" value="main" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="field"><label for="s-token">Token</label><input id="s-token" type="password" placeholder="github_pat_..." autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <p class="err-text" id="s-error" hidden></p>
+      <div class="toggles"><button class="btn" id="s-connect">Connect</button><button class="btn secondary" id="s-disconnect" hidden>Disconnect this device</button></div>
+      <p class="help" id="s-status"></p>
+    </div>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage blocked: stay in memory */ } },
+    del(k) { try { localStorage.removeItem(k); } catch { } },
+  };
+  const LEVEL_GROUP = { 'Manager': 'mgr', 'Senior Manager': 'mgr', 'Associate Director': 'mgr', 'Principal (IC)': 'ic', 'Lead / Strategist (IC)': 'ic',
+    'IC (other)': 'ic', 'Director': 'dir', 'Senior Director': 'dir', 'Head of': 'dir', 'VP': 'dir', 'Chief of Staff': 'cos' };
+  const LEVEL_LABEL = { 'IC (other)': 'Individual contributor', 'Lead / Strategist (IC)': 'Lead or strategist', 'Principal (IC)': 'Principal' };
+  const STATUSES = [['saved', 'Saved'], ['applied', 'Applied'], ['interviewing', 'Interviewing'], ['offer', 'Offer'], ['done', 'Closed out']];
+  const DEFAULT_FILTERS = { levels: ['mgr', 'ic', 'dir', 'cos'], tiers: ['A', 'B', 'C', 'new'], work: ['Remote', 'Hybrid', 'Onsite', 'Not specified'], minpay: 0, nopay: ['yes'] };
+
+  const S = {
+    jobs: [], byId: new Map(), updated: '', dec: store.get('sl.dec', {}), pending: store.get('sl.pending', false),
+    cfg: store.get('sl.cfg', null), mode: 'none', sha: null, tab: 'review', undo: [], revision: 0,
+    filters: Object.assign({}, DEFAULT_FILTERS, store.get('sl.filters', {})), syncTimer: null, syncing: false, queue: [],
+  };
+
+  // ---------- data sources ----------
+  const b64encode = (str) => { const bytes = new TextEncoder().encode(str); let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(bin); };
+  const b64decode = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, '')), c => c.charCodeAt(0)));
+
+  function gh(path, opts = {}) {
+    const [owner, repo] = S.cfg.repo.split('/');
+    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path}` + (opts.method ? '' : `?ref=${encodeURIComponent(S.cfg.branch || 'main')}`);
+    return fetch(url, Object.assign({ cache: 'no-store', headers: Object.assign({ Authorization: `Bearer ${S.cfg.token}`, Accept: 'application/vnd.github+json' }, opts.headers || {}) }, opts.init || {}, opts.method ? { method: opts.method, body: opts.body } : {}));
+  }
+  async function ghError(res) {
+    if (res.status === 401) return 'GitHub did not accept the token. Check that you copied all of it and that it has not expired.';
+    if (res.status === 403) return 'The token works but lacks access. Give it Contents: read and write on this repo.';
+    if (res.status === 404) return 'GitHub could not find that repo, branch, or data/jobs.json. Check the owner/name spelling.';
+    return `GitHub answered ${res.status}. Try again in a minute.`;
+  }
+  async function loadFromGitHub() {
+    const res = await gh('data/jobs.json', { headers: { Accept: 'application/vnd.github.raw+json' } });
+    if (!res.ok) throw new Error(await ghError(res));
+    const doc = await res.json();
+    const remote = await pullDecisions();
+    return { doc, remote };
+  }
+  async function pullDecisions() {
+    const res = await gh('data/decisions.json');
+    if (res.status === 404) return { sha: null, decisions: {} };
+    if (!res.ok) throw new Error(await ghError(res));
+    const body = await res.json();
+    let parsed = {};
+    try { parsed = JSON.parse(b64decode(body.content || '')); } catch { parsed = {}; }
+    return { sha: body.sha, decisions: parsed.decisions || {} };
+  }
+  async function loadLocal() {
+    for (const p of ['../data/jobs.json', 'data/jobs.json']) {
+      try { const r = await fetch(p, { cache: 'no-store' }); if (r.ok) return await r.json(); } catch { }
+    }
+    return null;
+  }
+
+  // newest change per role wins, so two devices never overwrite each other's picks
+  function merge(a, b) {
+    const out = Object.assign({}, a);
+    for (const [id, v] of Object.entries(b || {})) if (!out[id] || (v.at || '') > (out[id].at || '')) out[id] = v;
+    return out;
+  }
+
+  // ---------- sync ----------
+  function setSync(kind, text) { const el = $('#sync'); el.className = 'pill ' + kind; el.textContent = text; }
+  function showSyncState() {
+    if (S.mode === 'github') { if (S.syncing) setSync('busy', 'Saving'); else if (S.pending) setSync('err', 'Not synced yet'); else setSync('ok', 'Synced'); }
+    else if (S.mode === 'local') setSync('', 'This device only');
+    else setSync('', 'Not connected');
+  }
+  function persistLocal() { store.set('sl.dec', S.dec); store.set('sl.pending', S.pending); }
+  function scheduleSync(delay = 2500) {
+    if (S.mode !== 'github') return;
+    S.pending = true; persistLocal(); showSyncState();
+    clearTimeout(S.syncTimer); S.syncTimer = setTimeout(syncNow, delay);
+  }
+  async function syncNow() {
+    if (S.mode !== 'github' || S.syncing || !S.pending) return;
+    S.syncing = true; showSyncState();
+    let saved = false;
+    try {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const remote = await pullDecisions();
+        S.dec = merge(remote.decisions, S.dec);
+        const revision = S.revision;
+        const body = JSON.stringify({ version: 1, updated: new Date().toISOString(), decisions: S.dec }, null, 1);
+        const res = await gh('data/decisions.json', { method: 'PUT', body: JSON.stringify(Object.assign({ message: 'Update picks from Shortlist', content: b64encode(body), branch: S.cfg.branch || 'main' }, remote.sha ? { sha: remote.sha } : {})) });
+        if (res.ok) { saved = true; S.pending = S.revision !== revision; break; }
+        if (res.status !== 409 && res.status !== 422) throw new Error(await ghError(res));
+      }
+    } catch (e) {
+      console.warn('sync failed', e);
+    } finally {
+      S.syncing = false; persistLocal(); showSyncState(); renderCounts();
+      if (S.pending) { clearTimeout(S.syncTimer); S.syncTimer = setTimeout(syncNow, saved ? 1000 : 20000); }
+    }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && S.pending) syncNow(); });
+  window.addEventListener('online', () => S.pending && syncNow());
+
+  // ---------- decisions ----------
+  const decided = (id) => { const d = S.dec[id]; return d && (d.d === 'save' || d.d === 'pass') ? d.d : null; };
+  function setDecision(id, next, { remember = true } = {}) {
+    if (remember) { S.undo.push({ id, prev: S.dec[id] || null }); if (S.undo.length > 50) S.undo.shift(); }
+    S.dec[id] = Object.assign({}, next, { at: new Date().toISOString() });
+    S.revision++;
+    persistLocal(); scheduleSync();
+  }
+  function undo() {
+    const last = S.undo.pop(); if (!last) return;
+    S.dec[last.id] = last.prev ? Object.assign({}, last.prev, { at: new Date().toISOString() }) : { d: null, at: new Date().toISOString() };
+    S.revision++;
+    persistLocal(); scheduleSync(); hideToast(); render();
+  }
+
+  // ---------- filtering and order ----------
+  const tierKey = (j) => (j.tier ? j.tier : 'new');
+  function passesFilters(j) {
+    const f = S.filters;
+    if (!f.levels.includes(LEVEL_GROUP[j.level] || 'ic')) return false;
+    if (!f.tiers.includes(tierKey(j))) return false;
+    const wm = j.work_model;
+    const wmKeys = wm === 'Hybrid or Remote' ? ['Hybrid', 'Remote'] : (['Remote', 'Hybrid', 'Onsite'].includes(wm) ? [wm] : ['Not specified']);
+    if (!wmKeys.some(k => f.work.includes(k))) return false;
+    if (j.salary_max == null) return f.nopay.includes('yes');
+    return j.salary_max >= (Number(f.minpay) || 0);
+  }
+  const rank = { A: 0, B: 1, C: 2, new: 3 };
+  function buildQueue() {
+    S.queue = S.jobs.filter(j => j.status !== 'closed' && !decided(j.id) && passesFilters(j))
+      .sort((a, b) => ((b.status === 'new') - (a.status === 'new')) || (rank[tierKey(a)] - rank[tierKey(b)]) || ((b.salary_max || 0) - (a.salary_max || 0)) || a.company.localeCompare(b.company));
+  }
+
+  // ---------- rendering ----------
+  const fmtK = (n) => '$' + Math.round(n / 1000) + 'K';
+  function payText(j) {
+    if (j.salary_min && j.salary_max) return j.salary_min === j.salary_max ? fmtK(j.salary_max) : `${fmtK(j.salary_min)} to ${fmtK(j.salary_max)}`;
+    if (j.salary_max) return 'Up to ' + fmtK(j.salary_max);
+    if (j.salary_min) return 'From ' + fmtK(j.salary_min);
+    return null;
+  }
+  function el(tag, attrs = {}, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) { if (v == null || v === false) continue; if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else e.setAttribute(k, v); }
+    for (const k of kids.flat()) if (k != null) e.append(k);
+    return e;
+  }
+  function chipsFor(j) {
+    const out = [];
+    if (j.status === 'new') out.push(el('span', { class: 'chip new', text: 'New this week' }));
+    if (j.status === 'closed') out.push(el('span', { class: 'chip closed', text: 'Posting closed' }));
+    if (j.tier) out.push(el('span', { class: 'chip ' + j.tier.toLowerCase(), text: 'Tier ' + j.tier }));
+    else out.push(el('span', { class: 'chip new', text: 'Not scored' }));
+    if (j.level) out.push(el('span', { class: 'chip', text: LEVEL_LABEL[j.level] || j.level }));
+    if (j.work_model && j.work_model !== 'Not specified') out.push(el('span', { class: 'chip', text: j.work_model }));
+    return out;
+  }
+  function cardFor(j, behind) {
+    const pay = payText(j);
+    const card = el('article', { class: 'card' + (behind ? ' behind' : ''), 'data-id': j.id, 'aria-label': `${j.title} at ${j.company}` },
+      el('div', { class: 'stamp save', text: 'SAVE' }), el('div', { class: 'stamp pass', text: 'PASS' }),
+      el('div', { class: 'card-body' },
+        el('div', { class: 'chips' }, chipsFor(j)),
+        el('div', {}, el('p', { class: 'company', text: j.company }), el('h2', { class: 'title', text: j.title })),
+        el('dl', { class: 'facts' },
+          el('dt', { text: 'Pay' }), el('dd', { class: 'pay' + (pay ? '' : ' none'), text: pay || (j.salary_text && j.salary_text !== 'Not posted' ? j.salary_text : 'Not posted') }),
+          el('dt', { text: 'Where' }), el('dd', { text: j.location || 'Not stated' }),
+          j.sector ? el('dt', { text: 'Field' }) : null, j.sector ? el('dd', { text: j.sector }) : null),
+        j.why ? el('div', { class: 'block' }, el('h3', { text: 'Why it fits' }), el('p', { class: 'clamp', text: j.why })) : null,
+        j.watch ? el('div', { class: 'block watch' }, el('h3', { text: 'Watch-outs' }), el('p', { class: 'clamp', text: j.watch })) : null,
+        !j.why && j.snippet ? el('div', { class: 'block' }, el('h3', { text: 'From the posting' }), el('p', { class: 'clamp', text: j.snippet })) : null,
+        el('p', { class: 'meta', text: [j.source ? 'Found via ' + j.source : null, j.first_seen ? 'Added ' + j.first_seen : null, j.last_seen ? 'Last seen live ' + j.last_seen : null].filter(Boolean).join(' · ') })),
+      el('div', { class: 'card-foot' },
+        el('button', { class: 'ghost more', type: 'button', text: 'Read more' }),
+        el('a', { class: 'ghost link', href: j.url, target: '_blank', rel: 'noopener', text: 'Open posting' })));
+    return card;
+  }
+
+  function renderStage() {
+    const stage = $('#stage'); stage.textContent = '';
+    const [top, next] = S.queue;
+    $('#review-empty').hidden = !!top;
+    if (!S.jobs.length) { $('#empty-title').textContent = 'No roles loaded'; $('#empty-text').textContent = 'Connect your GitHub repo in Settings to load your list.'; }
+    else if (!top) {
+      const left = S.jobs.filter(j => j.status !== 'closed' && !decided(j.id)).length;
+      $('#empty-title').textContent = left ? 'Nothing matches these filters' : 'All caught up';
+      $('#empty-text').textContent = left ? `${left} roles are still waiting under other filters.` : 'You have reviewed every open role. New ones arrive after each nightly refresh.';
+    }
+    if (next) stage.append(cardFor(next, true));
+    if (top) { const c = cardFor(top, false); stage.append(c); wireCard(c, top); }
+    $('#btn-pass').disabled = $('#btn-save').disabled = !top;
+    $('#btn-undo').disabled = !S.undo.length;
+  }
+
+  function renderCounts() {
+    const saved = Object.values(S.dec).filter(d => d.d === 'save').length;
+    const passed = Object.values(S.dec).filter(d => d.d === 'pass').length;
+    $('#tab-review').textContent = `Review ${S.queue.length}`;
+    $('#tab-saved').textContent = `Saved ${saved}`;
+    $('#tab-passed').textContent = `Passed ${passed}`;
+  }
+
+  function renderSaved() {
+    const list = $('#saved-list'); list.textContent = '';
+    const items = Object.entries(S.dec).filter(([, d]) => d.d === 'save').map(([id, d]) => [S.byId.get(id), d]).filter(([j]) => j)
+      .sort((a, b) => (b[1].at || '').localeCompare(a[1].at || ''));
+    $('#saved-note').textContent = items.length ? 'Newest first. Set a status as you apply; it syncs to every device.' : 'Nothing saved yet. Swipe right on a role to keep it here.';
+    for (const [j, d] of items) {
+      const sel = el('select', { 'aria-label': 'Application status' }, STATUSES.map(([v, t]) => { const o = el('option', { value: v, text: t }); if ((d.status || 'saved') === v) o.selected = true; return o; }));
+      sel.addEventListener('change', () => setDecision(j.id, Object.assign({}, S.dec[j.id], { status: sel.value }), { remember: false }));
+      const note = el('textarea', { placeholder: 'Notes (referral, contact, deadline)', rows: '1' }); note.value = d.note || '';
+      let t; note.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => setDecision(j.id, Object.assign({}, S.dec[j.id], { note: note.value }), { remember: false }), 900); });
+      const back = el('button', { class: 'ghost small', type: 'button', text: 'Move back to Review' });
+      back.addEventListener('click', () => { setDecision(j.id, { d: null }); render(); });
+      const pay = payText(j);
+      list.append(el('div', { class: 'row' },
+        el('div', { class: 'row-head' }, el('div', {}, el('p', { class: 'company', text: j.company }), el('p', { class: 't', text: j.title }),
+          el('p', { class: 'sub', text: [pay || 'Pay not posted', j.work_model, j.location].filter(Boolean).join(' · ') }))),
+        el('div', { class: 'chips' }, chipsFor(j)),
+        el('div', { class: 'row-actions' }, sel, el('a', { class: 'ghost small link', href: j.url, target: '_blank', rel: 'noopener', text: 'Open posting' }), back),
+        note));
+    }
+  }
+
+  function renderPassed() {
+    const list = $('#passed-list'); list.textContent = '';
+    const items = Object.entries(S.dec).filter(([, d]) => d.d === 'pass').map(([id, d]) => [S.byId.get(id), d]).filter(([j]) => j)
+      .sort((a, b) => (b[1].at || '').localeCompare(a[1].at || ''));
+    if (!items.length) list.append(el('p', { class: 'note', text: 'Nothing passed yet.' }));
+    for (const [j] of items) {
+      const restore = el('button', { class: 'ghost small', type: 'button', text: 'Restore' });
+      restore.addEventListener('click', () => { setDecision(j.id, { d: null }); render(); });
+      list.append(el('div', { class: 'row' }, el('div', { class: 'row-head' },
+        el('div', {}, el('p', { class: 'company', text: j.company }), el('p', { class: 't', text: j.title }), el('p', { class: 'sub', text: payText(j) || 'Pay not posted' })), restore)));
+    }
+  }
+
+  function render() {
+    buildQueue(); renderCounts(); showSyncState();
+    for (const t of ['review', 'saved', 'passed']) {
+      $('#tab-' + t).setAttribute('aria-selected', String(S.tab === t));
+      $('#view-' + t).hidden = S.tab !== t;
+    }
+    $('#actions').hidden = S.tab !== 'review';
+    if (S.tab === 'review') renderStage(); else if (S.tab === 'saved') renderSaved(); else renderPassed();
+  }
+
+  // ---------- swipe ----------
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function setStamps(card, dx) {
+    const s = Math.max(0, Math.min(1, dx / 90)), p = Math.max(0, Math.min(1, -dx / 90));
+    card.querySelector('.stamp.save').style.opacity = s; card.querySelector('.stamp.pass').style.opacity = p;
+  }
+  function flyOut(card, dir, done) {
+    if (reduced) return done();
+    card.style.transition = 'transform .26s ease-in, opacity .26s ease-in';
+    card.style.transform = `translateX(${dir * 130}vw) rotate(${dir * 18}deg)`; card.style.opacity = '0';
+    setStamps(card, dir * 120);
+    setTimeout(done, 240);
+  }
+  function commit(kind) {
+    const j = S.queue[0]; if (!j) return;
+    const card = $('#stage .card:not(.behind)');
+    const finish = () => {
+      setDecision(j.id, kind === 'save' ? { d: 'save', status: 'saved' } : { d: 'pass' });
+      render(); showToast(kind === 'save' ? `Saved ${j.company}` : `Passed on ${j.company}`);
+    };
+    if (card) flyOut(card, kind === 'save' ? 1 : -1, finish); else finish();
+  }
+  function wireCard(card, j) {
+    card.querySelector('.more').addEventListener('click', (e) => { card.classList.toggle('expanded'); e.currentTarget.textContent = card.classList.contains('expanded') ? 'Show less' : 'Read more'; });
+    let x0 = 0, y0 = 0, t0 = 0, dx = 0, active = false, horizontal = null;
+    card.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || e.target.closest('a, button, select, textarea')) return;
+      active = true; horizontal = null; x0 = e.clientX; y0 = e.clientY; t0 = performance.now(); dx = 0;
+      card.style.transition = 'none';
+    });
+    card.addEventListener('pointermove', (e) => {
+      if (!active) return;
+      const mx = e.clientX - x0, my = e.clientY - y0;
+      if (horizontal === null && Math.abs(mx) + Math.abs(my) > 8) { horizontal = Math.abs(mx) > Math.abs(my); if (horizontal) { try { card.setPointerCapture(e.pointerId); } catch { } } }
+      if (!horizontal) return;
+      dx = mx; card.style.transform = `translateX(${dx}px) rotate(${dx / 20}deg)`; setStamps(card, dx);
+    });
+    const release = () => {
+      if (!active) return; active = false;
+      card.style.transition = '';
+      if (!horizontal) return;
+      const v = dx / Math.max(1, performance.now() - t0);
+      if (dx > 90 || (dx > 35 && v > 0.55)) commit('save');
+      else if (dx < -90 || (dx < -35 && v < -0.55)) commit('pass');
+      else { card.style.transform = ''; setStamps(card, 0); }
+    };
+    card.addEventListener('pointerup', release);
+    card.addEventListener('pointercancel', () => { active = false; card.style.transition = ''; card.style.transform = ''; setStamps(card, 0); });
+  }
+
+  // ---------- toast ----------
+  let toastTimer;
+  function showToast(text) { $('#toast-text').textContent = text; $('#toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 3500); }
+  function hideToast() { $('#toast').hidden = true; }
+
+  // ---------- filters sheet ----------
+  function openFilters() {
+    for (const group of document.querySelectorAll('#sheet-filters .toggles[data-key]')) {
+      const key = group.dataset.key;
+      for (const b of group.querySelectorAll('.tog')) b.setAttribute('aria-pressed', String(S.filters[key].includes(b.dataset.v)));
+    }
+    $('#f-minpay').value = String(S.filters.minpay || 0);
+    updateFilterCount(); $('#sheet-filters').hidden = false;
+  }
+  function updateFilterCount() { buildQueue(); $('#f-count').textContent = `${S.queue.length} roles match.`; }
+  document.querySelectorAll('#sheet-filters .toggles[data-key]').forEach(group => group.addEventListener('click', (e) => {
+    const b = e.target.closest('.tog'); if (!b) return;
+    const key = group.dataset.key, v = b.dataset.v, cur = new Set(S.filters[key]);
+    cur.has(v) ? cur.delete(v) : cur.add(v);
+    S.filters[key] = [...cur]; b.setAttribute('aria-pressed', String(cur.has(v)));
+    store.set('sl.filters', S.filters); updateFilterCount();
+  }));
+  $('#f-minpay').addEventListener('change', (e) => { S.filters.minpay = Number(e.target.value); store.set('sl.filters', S.filters); updateFilterCount(); });
+  $('#f-done').addEventListener('click', () => { $('#sheet-filters').hidden = true; render(); });
+  $('#btn-filter').addEventListener('click', openFilters);
+  $('#empty-filters').addEventListener('click', openFilters);
+
+  // ---------- settings sheet ----------
+  function openSettings(message) {
+    $('#s-repo').value = S.cfg?.repo || ''; $('#s-branch').value = S.cfg?.branch || 'main'; $('#s-token').value = '';
+    $('#s-token').placeholder = S.cfg?.token ? 'Saved on this device (paste to replace)' : 'github_pat_...';
+    $('#s-disconnect').hidden = !S.cfg;
+    $('#s-error').hidden = !message; $('#s-error').textContent = message || '';
+    $('#s-status').textContent = S.updated ? `List last refreshed ${new Date(S.updated).toLocaleString()}. ${S.jobs.length} roles loaded.` : '';
+    $('#sheet-settings').hidden = false;
+  }
+  $('#btn-settings').addEventListener('click', () => openSettings());
+  $('#s-close').addEventListener('click', () => { $('#sheet-settings').hidden = true; });
+  $('#s-connect').addEventListener('click', async () => {
+    const repo = $('#s-repo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
+    const branch = $('#s-branch').value.trim() || 'main';
+    const token = $('#s-token').value.trim() || S.cfg?.token || '';
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return openSettings('Enter the repo as owner/name, for example yourname/job-search.');
+    if (!token) return openSettings('Paste your GitHub token.');
+    const prev = S.cfg; S.cfg = { repo, branch, token };
+    $('#s-connect').disabled = true; $('#s-connect').textContent = 'Connecting';
+    try {
+      const { doc, remote } = await loadFromGitHub();
+      store.set('sl.cfg', S.cfg); S.mode = 'github';
+      const hadLocal = Object.keys(S.dec).length > 0;
+      applyJobs(doc); S.dec = merge(remote.decisions, S.dec); S.sha = remote.sha;
+      if (hadLocal) S.pending = true; persistLocal();
+      $('#sheet-settings').hidden = true; render(); if (S.pending) syncNow();
+    } catch (e) { S.cfg = prev; openSettings(e.message || 'Could not connect.'); }
+    finally { $('#s-connect').disabled = false; $('#s-connect').textContent = 'Connect'; }
+  });
+  $('#s-disconnect').addEventListener('click', () => { store.del('sl.cfg'); S.cfg = null; S.mode = 'none'; $('#sheet-settings').hidden = true; boot(); });
+
+  // ---------- exports ----------
+  function savedRows() {
+    return Object.entries(S.dec).filter(([, d]) => d.d === 'save').map(([id, d]) => ({ j: S.byId.get(id), d })).filter(x => x.j);
+  }
+  $('#copy-saved').addEventListener('click', async () => {
+    const text = savedRows().map(({ j, d }) => `${j.company}: ${j.title} (${payText(j) || 'pay not posted'}; ${(STATUSES.find(s => s[0] === (d.status || 'saved')) || [])[1]})\n${j.url}`).join('\n\n');
+    try { await navigator.clipboard.writeText(text); showToast('Copied your saved list'); } catch { showToast('Copy is blocked here. Use Download CSV.'); }
+  });
+  $('#csv-saved').addEventListener('click', () => {
+    const cols = ['Company', 'Title', 'Status', 'Pay', 'Work model', 'Location', 'Tier', 'Level', 'Notes', 'Link', 'Saved at'];
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [cols.join(',')].concat(savedRows().map(({ j, d }) => [j.company, j.title, d.status || 'saved', payText(j) || j.salary_text, j.work_model, j.location, j.tier, j.level, d.note || '', j.url, d.at].map(esc).join(',')));
+    const a = el('a', { href: URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' })), download: 'shortlist-saved.csv' });
+    document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  });
+
+  // ---------- controls ----------
+  $('#btn-save').addEventListener('click', () => commit('save'));
+  $('#btn-pass').addEventListener('click', () => commit('pass'));
+  $('#btn-undo').addEventListener('click', undo);
+  $('#toast-undo').addEventListener('click', undo);
+  for (const t of ['review', 'saved', 'passed']) $('#tab-' + t).addEventListener('click', () => { S.tab = t; render(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest('input, textarea, select') || !$('#sheet-filters').hidden || !$('#sheet-settings').hidden || S.tab !== 'review') return;
+    if (e.key === 'ArrowRight') commit('save');
+    else if (e.key === 'ArrowLeft') commit('pass');
+    else if (e.key === 'z' || e.key === 'ArrowUp') undo();
+    else if (e.key === 'Enter' && S.queue[0]) window.open(S.queue[0].url, '_blank', 'noopener');
+  });
+
+  // ---------- boot ----------
+  function applyJobs(doc, { cache = true } = {}) {
+    S.jobs = (doc.jobs || []).filter(j => j && j.id && j.title);
+    S.byId = new Map(S.jobs.map(j => [j.id, j])); S.updated = doc.updated || '';
+    if (cache) store.set('sl.jobs', { updated: S.updated, jobs: S.jobs }); // lets the app open with no signal (subway)
+  }
+  async function boot() {
+    showSyncState();
+    if (S.cfg) {
+      try {
+        const { doc, remote } = await loadFromGitHub();
+        S.mode = 'github'; applyJobs(doc); S.dec = merge(remote.decisions, S.dec); S.sha = remote.sha; persistLocal();
+        render(); if (S.pending) syncNow();
+        return;
+      } catch (e) {
+        const cached = store.get('sl.jobs', null);
+        if (cached && cached.jobs && cached.jobs.length) {
+          S.mode = 'github'; applyJobs(cached, { cache: false }); render(); setSync('err', 'Offline');
+          if (!/token|access|find/.test(e.message || '')) return;
+        }
+        openSettings(e.message);
+        if (cached && cached.jobs && cached.jobs.length) return;
+      }
+    }
+    const local = await loadLocal();
+    if (local) { S.mode = S.cfg ? 'github' : 'local'; applyJobs(local); render(); return; }
+    render(); if (!S.cfg) openSettings();
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

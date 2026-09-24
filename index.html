@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="refresh" content="0; url=https://miguel-shortlist.profound-9684.chatgpt.site/">
   <title>Opening Shortlist</title>
-  <script>location.replace('https://miguel-shortlist.profound-9684.chatgpt.site/');</script>
+  <script>
+    try { localStorage.removeItem('sl.cfg'); } catch { /* storage may be unavailable */ }
+    location.replace('https://miguel-shortlist.profound-9684.chatgpt.site/');
+  </script>
 </head>
 <body>
   <p>Opening <a href="https://miguel-shortlist.profound-9684.chatgpt.site/">Shortlist</a>...</p>
